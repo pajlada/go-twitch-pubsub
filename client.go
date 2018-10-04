@@ -1,4 +1,4 @@
-package twitch_pubsub
+package twitchpubsub
 
 import (
 	"encoding/json"

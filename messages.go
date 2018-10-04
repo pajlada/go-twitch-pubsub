@@ -1,4 +1,6 @@
-package twitch_pubsub
+package twitchpubsub
+
+import "fmt"
 
 const (
 	TypeListen = "LISTEN"
@@ -34,6 +36,12 @@ type TimeoutData struct {
 		MsgID            string   `json:"msg_id"`
 		TargetUserID     string   `json:"target_user_id"`
 	} `json:"data"`
+}
+
+// Returns a properly formatted moderation action topic string with the given user and channel ID arguments
+func ModerationActionTopic(userID, channelID string) string {
+	const f = `chat_moderator_actions.%s.%s`
+	return fmt.Sprintf(f, userID, channelID)
 }
 
 type Listen struct {
