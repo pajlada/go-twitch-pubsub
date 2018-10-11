@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 
 	"github.com/pajlada/go-twitch-pubsub"
@@ -17,19 +16,12 @@ func main() {
 	userToken := "abcdef123456"
 
 	pubsubClient.Listen(twitchpubsub.ModerationActionTopic(userID, channelID), userToken, func(bytes []byte) error {
-		var baseMsg twitchpubsub.Message
-		err := json.Unmarshal(bytes, &baseMsg)
+		event, err := twitchpubsub.GetModerationAction(bytes)
 		if err != nil {
 			return err
 		}
 
-		var msg twitchpubsub.TimeoutData
-		err = json.Unmarshal([]byte(baseMsg.Data.Message), &msg)
-		if err != nil {
-			return err
-		}
-
-		fmt.Println(msg.Data.CreatedBy, msg.Data.ModerationAction, "on", msg.Data.TargetUserID)
+		fmt.Println(event.CreatedBy, event.ModerationAction, "on", event.TargetUserID)
 
 		return nil
 	})

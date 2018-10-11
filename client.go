@@ -282,6 +282,7 @@ func (c *Client) parseMessage(b []byte) (err error) {
 	switch baseMsg.Type {
 	case "PONG":
 		c.onPong()
+		return
 
 	case "MESSAGE":
 		msg := Message{}
@@ -297,14 +298,31 @@ func (c *Client) parseMessage(b []byte) (err error) {
 				return
 			}
 
-			return nil
+			return
 		}
+
+		return
+
+	case "RESPONSE":
+		// A "RESPONSE" type message means it's a response to something we sent
+		// Most likely, this will be a response to a "LISTEN" message we sent earlier
+		// XXX: Right now, we do not attach a nonce to our listens, which means
+		// we are unable to identify which message we sent this "RESPONSE" is in response to
+		var msg ResponseMessage
+		if err = json.Unmarshal(b, &msg); err != nil {
+			return
+		}
+
+		if msg.Error != "" {
+			fmt.Println("Got an error response to a LISTEN message (don't know which right now):", msg.Error)
+		}
+
+		return
 
 	default:
 		fmt.Println("Received unknown message:", string(b))
+		return
 	}
-
-	return
 }
 
 func (c *Client) subscribeToTopics() {
