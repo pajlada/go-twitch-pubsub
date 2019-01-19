@@ -1,4 +1,3 @@
-// Structures that make up outgoing messages to twitch
 package twitchpubsub
 
 const (

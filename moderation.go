@@ -1,4 +1,3 @@
-// Helper functions and structures for twitch moderation actions
 package twitchpubsub
 
 import (
@@ -6,6 +5,7 @@ import (
 	"fmt"
 )
 
+// ModerationAction describes an incoming "Moderation" action coming from Twitch's PubSub servers
 type ModerationAction struct {
 	Type             string   `json:"type"`
 	ModerationAction string   `json:"moderation_action"`
@@ -16,6 +16,7 @@ type ModerationAction struct {
 	TargetUserID     string   `json:"target_user_id"`
 }
 
+// GetModerationAction attempts to parse a chunk of bytes into a ModerationAction structure
 func GetModerationAction(bytes []byte) (*ModerationAction, error) {
 	innerData, err := getInnerData(bytes)
 	if err != nil {
@@ -31,7 +32,7 @@ func GetModerationAction(bytes []byte) (*ModerationAction, error) {
 	return &e, nil
 }
 
-// Returns a properly formatted moderation action topic string with the given user and channel ID arguments
+// ModerationActionTopic returns a properly formatted moderation action topic string with the given user and channel ID arguments
 func ModerationActionTopic(userID, channelID string) string {
 	const f = `chat_moderator_actions.%s.%s`
 	return fmt.Sprintf(f, userID, channelID)

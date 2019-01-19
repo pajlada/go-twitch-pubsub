@@ -1,10 +1,10 @@
-// Structures that make up incoming messages from twitch
 package twitchpubsub
 
 import (
 	"encoding/json"
 )
 
+// InnerData TODO: Refactor
 type InnerData struct {
 	Data        json.RawMessage `json:"data"`
 	Version     string          `json:"version"`
@@ -12,17 +12,21 @@ type InnerData struct {
 	MessageID   string          `json:"message_id"`
 }
 
+// BaseData TODO: Refactor
 type BaseData struct {
-	Topic   string `json:"topic"`
+	Topic string `json:"topic"`
+	// Message is an escaped json string
 	Message string `json:"message"`
 }
 
+// Message TODO: Refactor
 type Message struct {
 	Base
 
 	Data BaseData `json:"data"`
 }
 
+// ResponseMessage TODO: Refactor
 type ResponseMessage struct {
 	Base
 

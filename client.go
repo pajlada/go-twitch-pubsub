@@ -20,15 +20,21 @@ type websocketTopic struct {
 	authToken string
 }
 
-const reconnectInterval = 5 * time.Second
-const pingInterval = 4 * time.Minute
-const pongDeadlineTime = 9 * time.Second
-const pubsubHost = "wss://pubsub-edge.twitch.tv"
-const writerBufferLength = 100
-const readerBufferLength = 100
+const (
+	reconnectInterval  = 5 * time.Second
+	pingInterval       = 4 * time.Minute
+	pongDeadlineTime   = 9 * time.Second
+	pubsubHost         = "wss://pubsub-edge.twitch.tv"
+	writerBufferLength = 100
+	readerBufferLength = 100
+)
 
-var ErrNotConnected = errors.New("go-twitch-pubsub: Not connected")
+var (
+	// ErrNotConnected is returned if an action is attempted to be performed on a Client when it is not connected
+	ErrNotConnected = errors.New("go-twitch-pubsub: Not connected")
+)
 
+// Client is the client that connects to Twitch's pubsub servers
 type Client struct {
 	Host string
 
@@ -54,18 +60,19 @@ type Client struct {
 	lastPong  time.Time
 }
 
+// NewClient creates a client struct and fills it in with some default values
 func NewClient() *Client {
 	c := &Client{
 		Host: pubsubHost,
+
+		callbacks: make(subscribeCallbackMap),
+
+		writer:     make(chan []byte, writerBufferLength),
+		writerStop: make(chan bool),
+
+		reader:     make(chan []byte, readerBufferLength),
+		readerStop: make(chan bool),
 	}
-
-	c.callbacks = make(subscribeCallbackMap)
-
-	c.writer = make(chan []byte, writerBufferLength)
-	c.writerStop = make(chan bool)
-
-	c.reader = make(chan []byte, readerBufferLength)
-	c.readerStop = make(chan bool)
 
 	return c
 }
@@ -83,6 +90,7 @@ func (c *Client) lastPongWithinLimits(pingTime time.Time) bool {
 	return c.lastPong.Sub(pingTime) < pongDeadlineTime
 }
 
+// Connect starts attempting to connect to the pubsub host
 func (c *Client) Connect() error {
 	var err error
 
@@ -109,6 +117,7 @@ func (c *Client) onConnected() {
 	go c.startPing()
 }
 
+// Ping can be called to manually send a PING to Twitch's pubsub servers. If a PONG response is not received within 9 seconds, we assume that the connection is dead and will attempt to reconnect
 func (c *Client) Ping() {
 	msg := Base{
 		Type: "PING",
@@ -136,17 +145,17 @@ func (c *Client) sendMessage(b []byte) error {
 	return nil
 }
 
+// SendMessage sends a raw message to Twitch's pubsub servers
+// Possible errors:
+// - If the interface you provide can't be marshalled, a json.Marshal error will be returned
+// - If the client is not connected, we can return an `ErrNotConnected` error
 func (c *Client) SendMessage(i interface{}) error {
 	b, err := json.Marshal(i)
 	if err != nil {
-		return errors.New("SendInterface JSON Error")
+		return err
 	}
 
-	if err = c.sendMessage(b); err != nil {
-		return errors.New("SendMessage sendMessage error")
-	}
-
-	return nil
+	return c.sendMessage(b)
 }
 
 func (c *Client) startPing() {
@@ -186,6 +195,7 @@ func (c *Client) stopReader() {
 	}
 }
 
+// Disconnect disconnects from Twitch's pubsub servers and leave the client in an idle state
 func (c *Client) Disconnect() {
 	if !c.IsConnected() {
 		return
@@ -355,6 +365,8 @@ func (c *Client) sendListen(topic websocketTopic) error {
 	return c.SendMessage(msg)
 }
 
+// Listen sends a message to Twitch's pubsub servers telling them we're interested in a specific topic
+// Some topics require authentication, and for those you will need to pass a valid authentication token
 func (c *Client) Listen(topicName string, authToken string, cb SubscribeCallback) {
 	c.callbacks[topicName] = cb
 

@@ -1,5 +1,6 @@
-// Helper functions and structures for twitch bits events
 package twitchpubsub
+
+// Helper functions and structures for twitch bits events
 
 import (
 	"encoding/json"
@@ -7,6 +8,7 @@ import (
 	"time"
 )
 
+// BitsEvent describes an incoming "Bit" action coming from Twitch's PubSub servers
 type BitsEvent struct {
 	UserName         string    `json:"user_name"`
 	ChannelName      string    `json:"channel_name"`
@@ -23,6 +25,7 @@ type BitsEvent struct {
 	} `json:"badge_entitlement"`
 }
 
+// GetBitsEvent attempts to parse a chunk of bytes into a BitsEvent structure
 func GetBitsEvent(bytes []byte) (*BitsEvent, error) {
 	innerData, err := getInnerData(bytes)
 	if err != nil {
@@ -37,7 +40,7 @@ func GetBitsEvent(bytes []byte) (*BitsEvent, error) {
 	return &e, nil
 }
 
-// Returns a properly formatted bits event topic string with the given channel ID argument
+// BitsEventTopic returns a properly formatted bits event topic string with the given channel ID argument
 func BitsEventTopic(channelID string) string {
 	const f = `channel-bits-events-v1.%s`
 	return fmt.Sprintf(f, channelID)
