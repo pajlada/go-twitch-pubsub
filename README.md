@@ -18,17 +18,14 @@ func main() {
 	channelID := "11148817"
 
 	// OAuth token for userID with chat_login (or chat:read?) scope
-	userToken := "userid_for_userID_here"
+	userToken := "jdgfkhjkdfhgdfjg"
 
-	pubsubClient.Listen(twitchpubsub.ModerationActionTopic(userID, channelID), userToken, func(bytes []byte) error {
-		event, err := twitchpubsub.GetModerationAction(bytes)
-		if err != nil {
-			return err
-		}
+	// Listen to a topic
+	pubsubClient.Listen(twitchpubsub.ModerationActionTopic(userID, channelID), userToken)
 
+	// Specify what callback is called when that topic receives a message
+	pubsubClient.OnModerationAction(func(channelID string, event *twitchpubsub.ModerationAction) {
 		fmt.Println(event.CreatedBy, event.ModerationAction, "on", event.TargetUserID)
-
-		return nil
 	})
 
 	err := pubsubClient.Connect()

@@ -10,10 +10,6 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-// SubscribeCallback defines a callback that is called when a Publish method matches the subscription topic
-type SubscribeCallback func(rawMessage []byte) error
-type subscribeCallbackMap map[string]SubscribeCallback
-
 type websocketTopic struct {
 	name      string
 	connected bool
@@ -38,12 +34,15 @@ var (
 type Client struct {
 	Host string
 
+	// Callbacks
+	onModerationAction func(channelID string, data *ModerationAction)
+	onBitsEvent        func(channelID string, data *BitsEvent)
+	onUnknown          func(bytes []byte)
+
 	connection *websocket.Conn
 
 	connectedMutex sync.Mutex
 	connected      bool
-
-	callbacks subscribeCallbackMap
 
 	topicMutex sync.Mutex
 	topics     []websocketTopic
@@ -65,8 +64,6 @@ func NewClient() *Client {
 	c := &Client{
 		Host: pubsubHost,
 
-		callbacks: make(subscribeCallbackMap),
-
 		writer:     make(chan []byte, writerBufferLength),
 		writerStop: make(chan bool),
 
@@ -75,6 +72,16 @@ func NewClient() *Client {
 	}
 
 	return c
+}
+
+// OnModerationAction attaches the given callback to the moderation action event
+func (c *Client) OnModerationAction(callback func(channelID string, data *ModerationAction)) {
+	c.onModerationAction = callback
+}
+
+// OnBitsEvent attaches the given callback to the bits event
+func (c *Client) OnBitsEvent(callback func(channelID string, data *BitsEvent)) {
+	c.onBitsEvent = callback
 }
 
 func (c *Client) onPong() {
@@ -117,14 +124,16 @@ func (c *Client) onConnected() {
 	go c.startPing()
 }
 
-// Ping can be called to manually send a PING to Twitch's pubsub servers. If a PONG response is not received within 9 seconds, we assume that the connection is dead and will attempt to reconnect
-func (c *Client) Ping() {
+func (c *Client) ping() error {
 	msg := Base{
 		Type: "PING",
 	}
 
 	pingTime := time.Now()
-	c.SendMessage(msg)
+	err := c.SendMessage(msg)
+	if err != nil {
+		return err
+	}
 
 	time.AfterFunc(pongDeadlineTime, func() {
 		if !c.lastPongWithinLimits(pingTime) {
@@ -133,6 +142,8 @@ func (c *Client) Ping() {
 			c.onDisconnect()
 		}
 	})
+
+	return nil
 }
 
 func (c *Client) sendMessage(b []byte) error {
@@ -160,7 +171,7 @@ func (c *Client) SendMessage(i interface{}) error {
 
 func (c *Client) startPing() {
 	time.AfterFunc(pingInterval, func() {
-		c.Ping()
+		_ = c.ping()
 		c.startPing()
 	})
 }
@@ -218,7 +229,9 @@ func (c *Client) onDisconnect() {
 		return
 	}
 
-	c.tryReconnect()
+	time.AfterFunc(reconnectInterval, func() {
+		c.tryReconnect()
+	})
 }
 
 func (c *Client) tryReconnect() error {
@@ -260,7 +273,7 @@ func (c *Client) startReader() {
 	for {
 		select {
 		case payloadBytes := <-c.reader:
-			if err := c.parseMessage(payloadBytes); err != nil {
+			if err := c.parse(payloadBytes); err != nil {
 				fmt.Println("Error parsing received websocket message:", err)
 			}
 
@@ -282,7 +295,7 @@ func (c *Client) startWriter() {
 	}
 }
 
-func (c *Client) parseMessage(b []byte) (err error) {
+func (c *Client) parse(b []byte) (err error) {
 	baseMsg := Base{}
 	err = json.Unmarshal(b, &baseMsg)
 	if err != nil {
@@ -295,44 +308,85 @@ func (c *Client) parseMessage(b []byte) (err error) {
 		return
 
 	case "MESSAGE":
-		msg := Message{}
-		err = json.Unmarshal(b, &msg)
-		if err != nil {
-			fmt.Println("Error unmarshalling message:", err)
-			return
-		}
-		if cb, ok := c.callbacks[msg.Data.Topic]; ok {
-			err = cb(b)
-			if err != nil {
-				fmt.Println("Error calling message callback:", err)
-				return
-			}
-
-			return
-		}
-
-		return
+		return c.parseMessage(b)
 
 	case "RESPONSE":
-		// A "RESPONSE" type message means it's a response to something we sent
-		// Most likely, this will be a response to a "LISTEN" message we sent earlier
-		// XXX: Right now, we do not attach a nonce to our listens, which means
-		// we are unable to identify which message we sent this "RESPONSE" is in response to
-		var msg ResponseMessage
-		if err = json.Unmarshal(b, &msg); err != nil {
-			return
-		}
-
-		if msg.Error != "" {
-			fmt.Println("Got an error response to a LISTEN message (don't know which right now):", msg.Error)
-		}
-
-		return
+		return c.parseResponse(b)
 
 	default:
 		fmt.Println("Received unknown message:", string(b))
 		return
 	}
+}
+
+func (c *Client) parseMessage(b []byte) error {
+	type message struct {
+		Data struct {
+			Topic string `json:"topic"`
+			// Message is an escaped json string
+			Message string `json:"message"`
+		} `json:"data"`
+	}
+	msg := message{}
+	if err := json.Unmarshal(b, &msg); err != nil {
+		fmt.Println("Error unmarshalling incoming message:", err)
+		return nil
+	}
+
+	innerMessageBytes := []byte(msg.Data.Message)
+
+	switch getMessageType(msg.Data.Topic) {
+	case messageTypeModerationAction:
+		d, err := parseModerationAction(innerMessageBytes)
+		if err != nil {
+			return err
+		}
+		if c.onModerationAction != nil {
+			channelID, err := parseChannelIDFromModerationTopic(msg.Data.Topic)
+			if err != nil {
+				return err
+			}
+			c.onModerationAction(channelID, d)
+		}
+	case messageTypeBitsEvent:
+		d, err := parseBitsEvent(innerMessageBytes)
+		if err != nil {
+			return err
+		}
+		if c.onBitsEvent != nil {
+			channelID, err := parseChannelIDFromBitsTopic(msg.Data.Topic)
+			if err != nil {
+				return err
+			}
+			c.onBitsEvent(channelID, d)
+		}
+
+	default:
+		fallthrough
+	case messageTypeUnknown:
+		if c.onUnknown != nil {
+			c.onUnknown(b)
+		}
+	}
+
+	return nil
+}
+
+func (c *Client) parseResponse(b []byte) error {
+	// A "RESPONSE" type message means it's a response to something we sent
+	// Most likely, this will be a response to a "LISTEN" message we sent earlier
+	// XXX: Right now, we do not attach a nonce to our listens, which means
+	// we are unable to identify which message we sent this "RESPONSE" is in response to
+	var msg ResponseMessage
+	if err := json.Unmarshal(b, &msg); err != nil {
+		return err
+	}
+
+	if msg.Error != "" {
+		fmt.Println("Got an error response to a LISTEN message (don't know which right now):", msg.Error)
+	}
+
+	return nil
 }
 
 func (c *Client) subscribeToTopics() {
@@ -367,9 +421,7 @@ func (c *Client) sendListen(topic websocketTopic) error {
 
 // Listen sends a message to Twitch's pubsub servers telling them we're interested in a specific topic
 // Some topics require authentication, and for those you will need to pass a valid authentication token
-func (c *Client) Listen(topicName string, authToken string, cb SubscribeCallback) {
-	c.callbacks[topicName] = cb
-
+func (c *Client) Listen(topicName string, authToken string) {
 	topic := websocketTopic{topicName, false, authToken}
 
 	c.topicMutex.Lock()

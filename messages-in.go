@@ -33,18 +33,3 @@ type ResponseMessage struct {
 	Error string `json:"error"`
 	Nonce string `json:"nonce"`
 }
-
-func getInnerData(bytes []byte) (json.RawMessage, error) {
-	var baseMessage Message
-	err := json.Unmarshal(bytes, &baseMessage)
-	if err != nil {
-		return nil, err
-	}
-
-	var innerData InnerData
-	if err = json.Unmarshal([]byte(baseMessage.Data.Message), &innerData); err != nil {
-		return nil, err
-	}
-
-	return innerData.Data, nil
-}

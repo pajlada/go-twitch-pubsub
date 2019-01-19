@@ -4,9 +4,13 @@ package twitchpubsub
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
+	"strings"
 	"time"
 )
+
+const bitsEventTopicPrefix = "channel-bits-events-v1."
 
 // BitsEvent describes an incoming "Bit" action coming from Twitch's PubSub servers
 type BitsEvent struct {
@@ -25,19 +29,27 @@ type BitsEvent struct {
 	} `json:"badge_entitlement"`
 }
 
-// GetBitsEvent attempts to parse a chunk of bytes into a BitsEvent structure
-func GetBitsEvent(bytes []byte) (*BitsEvent, error) {
-	innerData, err := getInnerData(bytes)
+type outerBitsEvent struct {
+	Data BitsEvent `json:"data"`
+}
+
+func parseBitsEvent(bytes []byte) (*BitsEvent, error) {
+	data := &outerBitsEvent{}
+	err := json.Unmarshal(bytes, data)
 	if err != nil {
 		return nil, err
 	}
 
-	var e BitsEvent
-	if err = json.Unmarshal(innerData, &e); err != nil {
-		return nil, err
+	return &data.Data, nil
+}
+
+func parseChannelIDFromBitsTopic(topic string) (string, error) {
+	parts := strings.Split(topic, ".")
+	if len(parts) != 2 {
+		return "", errors.New("Unable to parse channel ID from bits topic")
 	}
 
-	return &e, nil
+	return parts[1], nil
 }
 
 // BitsEventTopic returns a properly formatted bits event topic string with the given channel ID argument
