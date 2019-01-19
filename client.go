@@ -86,7 +86,7 @@ func (c *Client) lastPongWithinLimits(pingTime time.Time) bool {
 func (c *Client) Connect() error {
 	var err error
 
-	c.connection, _, err = websocket.DefaultDialer.Dial(pubsubHost, nil)
+	c.connection, _, err = websocket.DefaultDialer.Dial(c.Host, nil)
 	if err != nil {
 		c.doReconnect = true
 		c.onDisconnect()
