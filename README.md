@@ -12,7 +12,7 @@ import (
 )
 
 func main() {
-	pubsubClient := twitchpubsub.NewClient()
+	pubsubClient := twitchpubsub.NewClient(twitchpubsub.DefaultHost)
 
 	userID := "82008718"
 	channelID := "11148817"
@@ -28,10 +28,7 @@ func main() {
 		fmt.Println(event.CreatedBy, event.ModerationAction, "on", event.TargetUserID)
 	})
 
-	err := pubsubClient.Connect()
-	if err != nil {
-		panic(err)
-	}
+	go pubsubClient.Start()
 
 	c := make(chan bool)
 	<-c

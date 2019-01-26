@@ -4,6 +4,11 @@ import (
 	"encoding/json"
 )
 
+type sharedMessage struct {
+	Topic   string
+	Message interface{}
+}
+
 // InnerData TODO: Refactor
 type InnerData struct {
 	Data        json.RawMessage `json:"data"`
