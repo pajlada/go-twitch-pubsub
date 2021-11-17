@@ -1,0 +1,9 @@
+github.com/gorilla/websocket v1.4.2 h1:+/TMaTYc4QFitKJxsQ7Yye35DkWvkdLcvGKqM+x0Ufc=
+github.com/gorilla/websocket v1.4.2/go.mod h1:YR8l580nyteQvAITg2hZ9XVh4b55+EU/adAjf1fMHhE=
+github.com/pajbot/utils v1.0.0 h1:LiVOInr6gY/yA82QsgTnyGJaBcMOB0GaRYKDIC/4rB4=
+github.com/pajbot/utils v1.0.0/go.mod h1:lLYJXlC7fGL4FYvdZk+IQerV5zgwerjIsKDUJNb7LuE=
+github.com/pajlada/lidl-normalize v0.0.0-20180520094422-e6eb1186f156 h1:gM90lglyDaP+A0qclA3q8jCELnhHyb5EDvGCg649Di0=
+github.com/pajlada/lidl-normalize v0.0.0-20180520094422-e6eb1186f156/go.mod h1:ZwY6Ly1huS7aYfv8dH8tzbaBPwL/ZBgo2EsGiMifLA4=
+golang.org/x/text v0.3.2 h1:tW2bmiBqwgJj/UpqtC8EpXEZVYOwU0yG4iWbprSVAcs=
+golang.org/x/text v0.3.2/go.mod h1:bEr9sfX3Q8Zfm5fL9x+3itogRgK3+ptLWKqgva+5dAk=
+golang.org/x/tools v0.0.0-20180917221912-90fa682c2a6e/go.mod h1:n7NCudcB/nEzxVGmLbDWY5pfWTLqBcC2KZ6jyYvM4mQ=
