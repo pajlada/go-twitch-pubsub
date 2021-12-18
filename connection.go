@@ -3,11 +3,12 @@ package twitchpubsub
 import (
 	"encoding/json"
 	"fmt"
+	"strconv"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/gorilla/websocket"
-	"github.com/pajbot/utils"
 )
 
 type connection struct {
@@ -32,6 +33,8 @@ type connection struct {
 	doReconnect bool
 
 	topics []*websocketTopic
+
+	nonceCounter uint64
 }
 
 func newConnection(host string, messageBus messageBusType) *connection {
@@ -294,8 +297,13 @@ func (c *connection) parseMessage(b []byte) error {
 	return nil
 }
 
+func (c *connection) getNonce() string {
+	v := atomic.AddUint64(&c.nonceCounter, 1)
+	return strconv.FormatUint(v, 10)
+}
+
 func (c *connection) sendListen(topic *websocketTopic) {
-	nonce, _ := utils.GenerateRandomString(32)
+	nonce := c.getNonce()
 	msg := Listen{
 		Base: Base{
 			Type: TypeListen,
