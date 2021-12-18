@@ -2,7 +2,6 @@ package twitchpubsub
 
 import (
 	"errors"
-	"log"
 	"sync"
 	"time"
 )
@@ -29,23 +28,34 @@ var (
 	// ErrDisconnectedByUser is returned from Connect after the user calls Disconnect()
 	ErrDisconnectedByUser = errors.New("go-twitch-pubsub: Disconnected by user")
 
+	ErrMissingCallback = errors.New("missing callback for topic")
+
+	ErrNoParserAvailable = errors.New("no parser available for topic")
+
+	ErrMalformedInnerPayload = errors.New("malformed inner payload")
+
+	ErrMalformedMessage = errors.New("malformed message")
+
 	// DefaultHost is the default host to connect to Twitch's pubsub servers
 	DefaultHost = "wss://pubsub-edge.twitch.tv"
 )
 
-type messageBusType chan sharedMessage
+type messageBusType chan topicMessage
 
 // Client is the client that connects to Twitch's pubsub servers
 type Client struct {
-	// Callbacks
-	onModerationAction func(channelID string, data *ModerationAction)
-	onBitsEvent        func(channelID string, data *BitsEvent)
+	// onChatModeratorAction is the callback for the chat_moderator_actions topic
+	// The implementation for this can be found in the chat_moderator_actions.go file
+	onChatModerationAction func(channelID string, data *ChatModeratorAction)
+
+	// onBitsEvent is the ca
+	onBitsEvent func(channelID string, data *BitsEvent)
 
 	connectionManager *connectionManager
 
 	topics *topicManager
 
-	messageBus chan sharedMessage
+	messageBus messageBusType
 
 	quitChannel chan struct{}
 }
@@ -53,7 +63,7 @@ type Client struct {
 // NewClient creates a client struct and fills it in with some default values
 func NewClient(host string) *Client {
 	c := &Client{
-		messageBus:  make(chan sharedMessage, messageBusBufferLength),
+		messageBus:  make(messageBusType, messageBusBufferLength),
 		quitChannel: make(chan struct{}),
 
 		topics: newTopicManager(),
@@ -83,11 +93,6 @@ func (c *Client) SetTopicLimit(topicLimit int) {
 	c.connectionManager.setTopicLimit(topicLimit)
 }
 
-// OnModerationAction attaches the given callback to the moderation action event
-func (c *Client) OnModerationAction(callback func(channelID string, data *ModerationAction)) {
-	c.onModerationAction = callback
-}
-
 // OnBitsEvent attaches the given callback to the bits event
 func (c *Client) OnBitsEvent(callback func(channelID string, data *BitsEvent)) {
 	c.onBitsEvent = callback
@@ -99,27 +104,27 @@ func (c *Client) Start() error {
 
 	for {
 		select {
-		case msg := <-c.messageBus:
-			switch msg.Message.(type) {
-			case *ModerationAction:
-				d := msg.Message.(*ModerationAction)
-				channelID, err := parseChannelIDFromModerationTopic(msg.Topic)
-				if err != nil {
-					log.Println("Error parsing channel id from moderation topic:", err)
-					continue
-				}
-				c.onModerationAction(channelID, d)
-			case *BitsEvent:
-				d := msg.Message.(*BitsEvent)
-				channelID, err := parseChannelIDFromBitsTopic(msg.Topic)
-				if err != nil {
-					log.Println("Error parsing channel id from bits topic:", err)
-					continue
-				}
-				c.onBitsEvent(channelID, d)
-			default:
-				log.Println("unknown message in message bus")
+		case iMsg := <-c.messageBus:
+			if err := iMsg.handle(c); err != nil {
+				return err
 			}
+
+			// switch msg := iMsg.Message.(type) {
+			// case *ChatModeratorAction:
+			// 	if err := c.handleChatModeratorActionsMessage(iMsg.Topic, msg); err != nil {
+			// 		return err
+			// 	}
+
+			// case *BitsEvent:
+			// 	channelID, err := parseChannelIDFromBitsTopic(iMsg.Topic)
+			// 	if err != nil {
+			// 		return err
+			// 	}
+			// 	c.onBitsEvent(channelID, msg)
+
+			// default:
+			// 	log.Println("unknown message in message bus")
+			// }
 		case <-c.quitChannel:
 			return ErrDisconnectedByUser
 		}
@@ -135,7 +140,7 @@ func (c *Client) Disconnect() {
 
 // Listen sends a message to Twitch's pubsub servers telling them we're interested in a specific topic
 // Some topics require authentication, and for those you will need to pass a valid authentication token
-func (c *Client) Listen(topicName string, authToken string) {
+func (c *Client) listen(topicName string, authToken string) {
 	topic := newTopic(topicName, authToken)
 
 	if !c.topics.Add(topic) {

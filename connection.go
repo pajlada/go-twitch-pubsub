@@ -1,3 +1,4 @@
+// xD2
 package twitchpubsub
 
 import (
@@ -28,7 +29,7 @@ type connection struct {
 	pongMutex sync.Mutex
 	lastPong  time.Time
 
-	messageBus chan sharedMessage
+	messageBus messageBusType
 
 	doReconnect bool
 
@@ -107,18 +108,20 @@ func (c *connection) writeMessage(msg interface{}) error {
 		return err
 	}
 
-	c.writer <- b
+	return c.writeRaw(b)
+}
+
+func (c *connection) writeRaw(msg []byte) error {
+	c.writer <- msg
 
 	return nil
 }
 
-func (c *connection) ping() error {
-	msg := &Base{
-		Type: "PING",
-	}
+var pingMessage = []byte(`{"type": "PING"}`)
 
+func (c *connection) ping() error {
 	pingTime := time.Now()
-	err := c.writeMessage(msg)
+	err := c.writeRaw(pingMessage)
 	if err != nil {
 		return err
 	}
@@ -229,13 +232,14 @@ func (c *connection) startWriter() {
 }
 
 func (c *connection) parse(b []byte) (err error) {
-	baseMsg := Base{}
-	err = json.Unmarshal(b, &baseMsg)
+	fmt.Println("GOT MESSAGE:", string(b))
+	var msg pubSubMessage
+	err = json.Unmarshal(b, &msg)
 	if err != nil {
 		return
 	}
 
-	switch baseMsg.Type {
+	switch msg.Type {
 	case "PONG":
 		c.onPong()
 		return
@@ -253,46 +257,11 @@ func (c *connection) parse(b []byte) (err error) {
 }
 
 func (c *connection) parseMessage(b []byte) error {
-	type message struct {
-		Data struct {
-			Topic string `json:"topic"`
-			// Message is an escaped json string
-			Message string `json:"message"`
-		} `json:"data"`
+	tm, err := parseMessage(b)
+	if err != nil {
+		return err
 	}
-	msg := message{}
-	if err := json.Unmarshal(b, &msg); err != nil {
-		fmt.Println("[go-twitch-pubsub] Error unmarshalling incoming message:", err)
-		return nil
-	}
-
-	innerMessageBytes := []byte(msg.Data.Message)
-
-	switch getMessageType(msg.Data.Topic) {
-	case messageTypeModerationAction:
-		d, err := parseModerationAction(innerMessageBytes)
-		if err != nil {
-			return err
-		}
-		c.messageBus <- sharedMessage{
-			Topic:   msg.Data.Topic,
-			Message: d,
-		}
-	case messageTypeBitsEvent:
-		d, err := parseBitsEvent(innerMessageBytes)
-		if err != nil {
-			return err
-		}
-		c.messageBus <- sharedMessage{
-			Topic:   msg.Data.Topic,
-			Message: d,
-		}
-
-	default:
-		fallthrough
-	case messageTypeUnknown:
-		// This can be used while implementing new message types
-	}
+	c.messageBus <- tm
 
 	return nil
 }
@@ -305,9 +274,7 @@ func (c *connection) getNonce() string {
 func (c *connection) sendListen(topic *websocketTopic) {
 	nonce := c.getNonce()
 	msg := Listen{
-		Base: Base{
-			Type: TypeListen,
-		},
+		Type:  TypeListen,
 		Nonce: nonce,
 		Data: ListenData{
 			Topics:    []string{topic.name},

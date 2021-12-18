@@ -4,9 +4,9 @@ import (
 	"encoding/json"
 )
 
-type sharedMessage struct {
-	Topic   string
-	Message interface{}
+type xDMessage struct {
+	topic   string
+	message topicMessage
 }
 
 // InnerData TODO: Refactor
@@ -26,14 +26,14 @@ type BaseData struct {
 
 // Message TODO: Refactor
 type Message struct {
-	Base
+	Type string `json:"type"`
 
 	Data BaseData `json:"data"`
 }
 
 // ResponseMessage TODO: Refactor
 type ResponseMessage struct {
-	Base
+	Type string `json:"type"`
 
 	Error string `json:"error"`
 	Nonce string `json:"nonce"`

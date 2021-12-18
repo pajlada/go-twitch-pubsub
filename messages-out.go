@@ -10,7 +10,7 @@ type ListenData struct {
 }
 
 type Listen struct {
-	Base
+	Type string `json:"type"`
 
 	Nonce string `json:"nonce,omitempty"`
 
