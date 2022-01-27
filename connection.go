@@ -287,6 +287,15 @@ func (c *connection) parseMessage(b []byte) error {
 			Topic:   msg.Data.Topic,
 			Message: d,
 		}
+	case messageTypePointsEvent:
+		d, err := parsePointsEvent(innerMessageBytes)
+		if err != nil {
+			return err
+		}
+		c.messageBus <- sharedMessage{
+			Topic:   msg.Data.Topic,
+			Message: d,
+		}
 
 	default:
 		fallthrough

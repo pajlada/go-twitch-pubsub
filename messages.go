@@ -13,6 +13,7 @@ const (
 	messageTypeUnknown messageType = iota
 	messageTypeModerationAction
 	messageTypeBitsEvent
+	messageTypePointsEvent
 )
 
 func getMessageType(topic string) messageType {
@@ -21,6 +22,9 @@ func getMessageType(topic string) messageType {
 	}
 	if strings.HasPrefix(topic, bitsEventTopicPrefix) {
 		return messageTypeBitsEvent
+	}
+	if strings.HasPrefix(topic, pointsEventTopicPrefix) {
+		return messageTypePointsEvent
 	}
 
 	return messageTypeUnknown

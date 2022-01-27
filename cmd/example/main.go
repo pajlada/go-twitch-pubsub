@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 
-	"github.com/pajlada/go-twitch-pubsub"
+	"github.com/aiuzu42/go-twitch-pubsub"
 )
 
 func main() {
