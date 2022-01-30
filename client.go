@@ -40,6 +40,7 @@ type Client struct {
 	// Callbacks
 	onModerationAction func(channelID string, data *ModerationAction)
 	onBitsEvent        func(channelID string, data *BitsEvent)
+	onPointsEvent      func(channelID string, data *PointsEvent)
 
 	connectionManager *connectionManager
 
@@ -93,6 +94,11 @@ func (c *Client) OnBitsEvent(callback func(channelID string, data *BitsEvent)) {
 	c.onBitsEvent = callback
 }
 
+// OnBitsEvent attaches the given callback to the points event
+func (c *Client) OnPointsEvent(callback func(channelID string, data *PointsEvent)) {
+	c.onPointsEvent = callback
+}
+
 // Connect starts attempting to connect to the pubsub host
 func (c *Client) Start() error {
 	go c.connectionManager.run()
@@ -117,6 +123,14 @@ func (c *Client) Start() error {
 					continue
 				}
 				c.onBitsEvent(channelID, d)
+			case *PointsEvent:
+				d := msg.Message.(*PointsEvent)
+				channelID, err := parseChannelIDFromPointsTopic(msg.Topic)
+				if err != nil {
+					log.Println("Error parsing channel id from points topic:", err)
+					continue
+				}
+				c.onPointsEvent(channelID, d)
 			default:
 				log.Println("unknown message in message bus")
 			}
