@@ -90,8 +90,8 @@ func (c *connection) startReader() {
 
 func (c *connection) onPong() {
 	c.pongMutex.Lock()
+	defer c.pongMutex.Unlock()
 	c.lastPong = time.Now()
-	c.pongMutex.Unlock()
 }
 
 func (c *connection) lastPongWithinLimits(pingTime time.Time) bool {
@@ -143,8 +143,8 @@ func (c *connection) startPing() {
 
 func (c *connection) setConnected(newConnectedState bool) {
 	c.connectedMutex.Lock()
+	defer c.connectedMutex.Unlock()
 	c.connected = newConnectedState
-	c.connectedMutex.Unlock()
 }
 
 func (c *connection) stopWriter() {
