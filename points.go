@@ -45,6 +45,8 @@ type PointsEvent struct {
 			Cd      int  `json:"global_cooldown_seconds"`
 		} `json:"global_cooldown"`
 	} `json:"reward"`
+	UserInput  string   `json:"user_input,omitempty"`
+	Status     string   `json:"status"`
 }
 
 type outerPointsEvent struct {
