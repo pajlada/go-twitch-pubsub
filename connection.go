@@ -296,6 +296,15 @@ func (c *connection) parseMessage(b []byte) error {
 			Topic:   msg.Data.Topic,
 			Message: d,
 		}
+	case messageTypeAutoModQueueEvent:
+		d, err := parseAutoModQueueEvent(innerMessageBytes)
+		if err != nil {
+			return err
+		}
+		c.messageBus <- sharedMessage{
+			Topic:   msg.Data.Topic,
+			Message: d,
+		}
 
 	default:
 		fallthrough

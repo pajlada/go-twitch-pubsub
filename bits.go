@@ -46,7 +46,7 @@ func parseBitsEvent(bytes []byte) (*BitsEvent, error) {
 func parseChannelIDFromBitsTopic(topic string) (string, error) {
 	parts := strings.Split(topic, ".")
 	if len(parts) != 2 {
-		return "", errors.New("Unable to parse channel ID from bits topic")
+		return "", errors.New("unable to parse channel ID from bits topic")
 	}
 
 	return parts[1], nil

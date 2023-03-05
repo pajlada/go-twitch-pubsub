@@ -38,9 +38,10 @@ type messageBusType chan sharedMessage
 // Client is the client that connects to Twitch's pubsub servers
 type Client struct {
 	// Callbacks
-	onModerationAction func(channelID string, data *ModerationAction)
-	onBitsEvent        func(channelID string, data *BitsEvent)
-	onPointsEvent      func(channelID string, data *PointsEvent)
+	onModerationAction  func(channelID string, data *ModerationAction)
+	onBitsEvent         func(channelID string, data *BitsEvent)
+	onPointsEvent       func(channelID string, data *PointsEvent)
+	onAutoModQueueEvent func(channelID string, data *AutoModQueueEvent)
 
 	connectionManager *connectionManager
 
@@ -94,9 +95,14 @@ func (c *Client) OnBitsEvent(callback func(channelID string, data *BitsEvent)) {
 	c.onBitsEvent = callback
 }
 
-// OnBitsEvent attaches the given callback to the points event
+// OnPointsEvent attaches the given callback to the points event
 func (c *Client) OnPointsEvent(callback func(channelID string, data *PointsEvent)) {
 	c.onPointsEvent = callback
+}
+
+// OnAutoModQueueEvent attaches the given callback to the message event
+func (c *Client) OnAutoModQueueEvent(callback func(channelID string, data *AutoModQueueEvent)) {
+	c.onAutoModQueueEvent = callback
 }
 
 // Connect starts attempting to connect to the pubsub host
@@ -131,6 +137,14 @@ func (c *Client) Start() error {
 					continue
 				}
 				c.onPointsEvent(channelID, d)
+			case *AutoModQueueEvent:
+				d := msg.Message.(*AutoModQueueEvent)
+				channelID, err := parseChannelIDFromAutoModQueueTopic(msg.Topic)
+				if err != nil {
+					log.Println("Error parsing channel id from AutoMod Queue topic:", err)
+					continue
+				}
+				c.onAutoModQueueEvent(channelID, d)
 			default:
 				log.Println("unknown message in message bus")
 			}
