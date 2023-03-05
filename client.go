@@ -42,6 +42,7 @@ type Client struct {
 	onBitsEvent         func(channelID string, data *BitsEvent)
 	onPointsEvent       func(channelID string, data *PointsEvent)
 	onAutoModQueueEvent func(channelID string, data *AutoModQueueEvent)
+	onWhisperEvent      func(userID string, data *WhisperEvent)
 
 	connectionManager *connectionManager
 
@@ -105,6 +106,11 @@ func (c *Client) OnAutoModQueueEvent(callback func(channelID string, data *AutoM
 	c.onAutoModQueueEvent = callback
 }
 
+// OnWhisperEvent attaches the given callback to the whisper event
+func (c *Client) OnWhisperEvent(callback func(userID string, data *WhisperEvent)) {
+	c.onWhisperEvent = callback
+}
+
 // Connect starts attempting to connect to the pubsub host
 func (c *Client) Start() error {
 	go c.connectionManager.run()
@@ -145,6 +151,14 @@ func (c *Client) Start() error {
 					continue
 				}
 				c.onAutoModQueueEvent(channelID, d)
+			case *WhisperEvent:
+				d := msg.Message.(*WhisperEvent)
+				userID, err := parseUserIDFromWhisperTopic(msg.Topic)
+				if err != nil {
+					log.Println("Error parsing channel id from whisper topic:", err)
+					continue
+				}
+				c.onWhisperEvent(userID, d)
 			default:
 				log.Println("unknown message in message bus")
 			}

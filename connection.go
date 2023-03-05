@@ -305,6 +305,15 @@ func (c *connection) parseMessage(b []byte) error {
 			Topic:   msg.Data.Topic,
 			Message: d,
 		}
+	case messageTypeWhisperEvent:
+		d, err := parseWhisperEvent(innerMessageBytes)
+		if err != nil {
+			return err
+		}
+		c.messageBus <- sharedMessage{
+			Topic:   msg.Data.Topic,
+			Message: d,
+		}
 
 	default:
 		fallthrough
