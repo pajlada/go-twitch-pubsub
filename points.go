@@ -1,6 +1,6 @@
 package twitchpubsub
 
-// Helper functions and structures for twitch bits events
+// Helper functions and structures for twitch channel points events
 
 import (
 	"encoding/json"
@@ -19,7 +19,7 @@ type PointsEvent struct {
 		Id          string `json:"id"`
 		User        string `json:"login"`
 		DisplayName string `json:"display_name"`
-	} `json:""user`
+	} `json:"user"`
 	ChannelID  string    `json:"channel_id"`
 	RedeemedAt time.Time `json:"redeemed_at"`
 	Reward     struct {
@@ -69,7 +69,7 @@ func parsePointsEvent(bytes []byte) (*PointsEvent, error) {
 func parseChannelIDFromPointsTopic(topic string) (string, error) {
 	parts := strings.Split(topic, ".")
 	if len(parts) != 2 {
-		return "", errors.New("Unable to parse channel ID from points topic")
+		return "", errors.New("unable to parse channel ID from points topic")
 	}
 
 	return parts[1], nil

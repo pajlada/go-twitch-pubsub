@@ -37,7 +37,7 @@ func parseModerationAction(bytes []byte) (*ModerationAction, error) {
 func parseChannelIDFromModerationTopic(topic string) (string, error) {
 	parts := strings.Split(topic, ".")
 	if len(parts) != 3 {
-		return "", errors.New("Unable to parse channel ID from moderation topic")
+		return "", errors.New("unable to parse channel ID from moderation topic")
 	}
 
 	return parts[2], nil

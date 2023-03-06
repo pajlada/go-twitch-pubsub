@@ -14,6 +14,8 @@ const (
 	messageTypeModerationAction
 	messageTypeBitsEvent
 	messageTypePointsEvent
+	messageTypeAutoModQueueEvent
+	messageTypeWhisperEvent
 )
 
 func getMessageType(topic string) messageType {
@@ -25,6 +27,12 @@ func getMessageType(topic string) messageType {
 	}
 	if strings.HasPrefix(topic, pointsEventTopicPrefix) {
 		return messageTypePointsEvent
+	}
+	if strings.HasPrefix(topic, autoModQueueEventTopicPrefix) {
+		return messageTypeAutoModQueueEvent
+	}
+	if strings.HasPrefix(topic, whisperEventTopicPrefix) {
+		return messageTypeWhisperEvent
 	}
 
 	return messageTypeUnknown
