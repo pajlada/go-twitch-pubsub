@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 
-	"github.com/pajlada/go-twitch-pubsub"
+	twitchpubsub "github.com/pajlada/go-twitch-pubsub"
 )
 
 func main() {
@@ -20,10 +20,15 @@ func main() {
 	pubsubClient.Listen(twitchpubsub.ModerationActionTopic(userID, "93031467"), userToken)
 	pubsubClient.Listen(twitchpubsub.ModerationActionTopic(userID, "93031467"), userToken)
 	pubsubClient.Listen(twitchpubsub.ModerationActionTopic(userID, "93031467"), userToken)
+	pubsubClient.Listen(twitchpubsub.SubscribeEventTopic(userID), userToken)
 
 	// Specify what callback is called when that topic receives a message
 	pubsubClient.OnModerationAction(func(channelID string, event *twitchpubsub.ModerationAction) {
 		fmt.Println(channelID, event.CreatedBy, event.ModerationAction, "on", event.TargetUserID)
+	})
+
+	pubsubClient.OnSubscribeEvent(func(channelID string, event *twitchpubsub.SubscribeEvent) {
+		fmt.Printf("Subscribe event in %s: %#v\n", channelID, event)
 	})
 
 	go pubsubClient.Start()

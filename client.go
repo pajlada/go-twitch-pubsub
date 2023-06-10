@@ -43,6 +43,7 @@ type Client struct {
 	onPointsEvent       func(channelID string, data *PointsEvent)
 	onAutoModQueueEvent func(channelID string, data *AutoModQueueEvent)
 	onWhisperEvent      func(userID string, data *WhisperEvent)
+	onSubscribeEvent    func(channelID string, data *SubscribeEvent)
 
 	connectionManager *connectionManager
 
@@ -111,6 +112,11 @@ func (c *Client) OnWhisperEvent(callback func(userID string, data *WhisperEvent)
 	c.onWhisperEvent = callback
 }
 
+// OnSubscribeEvent attaches the given callback to the subscribe event
+func (c *Client) OnSubscribeEvent(callback func(channelID string, data *SubscribeEvent)) {
+	c.onSubscribeEvent = callback
+}
+
 // Connect starts attempting to connect to the pubsub host
 func (c *Client) Start() error {
 	go c.connectionManager.run()
@@ -159,6 +165,14 @@ func (c *Client) Start() error {
 					continue
 				}
 				c.onWhisperEvent(userID, d)
+			case *SubscribeEvent:
+				d := msg.Message.(*SubscribeEvent)
+				channelID, err := parseChannelIDFromSubscribeTopic(msg.Topic)
+				if err != nil {
+					log.Println("Error parsing channel id from subscribe topic:", err)
+					continue
+				}
+				c.onSubscribeEvent(channelID, d)
 			default:
 				log.Println("unknown message in message bus")
 			}
