@@ -35,7 +35,7 @@ func getMessageType(topic string) messageType {
 	if strings.HasPrefix(topic, whisperEventTopicPrefix) {
 		return messageTypeWhisperEvent
 	}
-	if strings.HasPrefix(topic, subscribeEventTopicPrefix) {
+	if isSubscribeEventTopic(topic) {
 		return messageTypeSubscribeEvent
 	}
 

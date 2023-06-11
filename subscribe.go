@@ -87,6 +87,10 @@ func parseChannelIDFromSubscribeTopic(topic string) (string, error) {
 	return parts[1], nil
 }
 
+func isSubscribeEventTopic(topic string) bool {
+	return strings.HasPrefix(topic, subscribeEventTopicPrefix)
+}
+
 // SubscribeEventTopic returns a properly formatted subscription event topic string with the given channel ID argument
 func SubscribeEventTopic(channelID string) string {
 	const f = `channel-subscribe-events-v1.%s`
