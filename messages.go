@@ -16,6 +16,7 @@ const (
 	messageTypePointsEvent
 	messageTypeAutoModQueueEvent
 	messageTypeWhisperEvent
+	messageTypeSubscribeEvent
 )
 
 func getMessageType(topic string) messageType {
@@ -33,6 +34,9 @@ func getMessageType(topic string) messageType {
 	}
 	if strings.HasPrefix(topic, whisperEventTopicPrefix) {
 		return messageTypeWhisperEvent
+	}
+	if isSubscribeEventTopic(topic) {
+		return messageTypeSubscribeEvent
 	}
 
 	return messageTypeUnknown
