@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Minor: Add support for subscribe events. See more information here: https://dev.twitch.tv/docs/pubsub/#example-channel-subscriptions-event-message (#15)
+- Dev: Add https://github.com/frankban/quicktest as a dependency for tests. (#15)
+
 ## v0.0.2
 
 - Minor: Add UserInput and Status fields to ChannelPoints `PointsEvent` Topic. (#10)
