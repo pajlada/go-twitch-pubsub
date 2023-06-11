@@ -63,16 +63,9 @@ func (c *connectionManager) getTopicLimit() int {
 }
 
 func (c *connectionManager) run() {
-	for {
-		select {
-		case <-c.quitChannel:
-			for _, conn := range c.connections {
-				conn.Disconnect()
-			}
-			return
-			// case <-time.After(1 * time.Second):
-			// TODO: Check for orphan topics?
-		}
+	<-c.quitChannel
+	for _, conn := range c.connections {
+		conn.Disconnect()
 	}
 }
 
