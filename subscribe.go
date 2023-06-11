@@ -33,6 +33,18 @@ type SubscribeEvent struct {
 	// Can be empty if it was an anonymous gift
 	DisplayName string `json:"display_name"`
 
+	// RecipientID is the ID of the user who was gifted a subscription
+	// Can be empty if this was not a gift subscription
+	RecipientID string `json:"recipient_id"`
+
+	// RecipientUserName is the login name of the user who was gifted a subscription
+	// Can be empty if this was not a gift subscription
+	RecipientUserName string `json:"recipient_user_name"`
+
+	// RecipientDisplayName is the display name of the user who was gifted a subscription
+	// Can be empty if this was not a gift subscription
+	RecipientDisplayName string `json:"recipient_display_name"`
+
 	// Time when the subscription or gift was completed
 	Time time.Time `json:"time"`
 
