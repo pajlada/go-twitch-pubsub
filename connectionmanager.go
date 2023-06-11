@@ -23,14 +23,18 @@ type connectionManager struct {
 	quitChannel chan struct{}
 }
 
-func newConnectionManager(host string, messageBus messageBusType, quitChannel chan struct{}) *connectionManager {
+func newConnectionManager(host string, connectionLimit int, topicLimit int, messageBus messageBusType, quitChannel chan struct{}) *connectionManager {
 	return &connectionManager{
 		host: host,
 
-		connectionLimit: 10,
-		topicLimit:      49,
-		messageBus:      messageBus,
-		quitChannel:     quitChannel,
+		connectionLimit:      connectionLimit,
+		connectionLimitMutex: &sync.RWMutex{},
+
+		topicLimit:      topicLimit,
+		topicLimitMutex: &sync.RWMutex{},
+
+		messageBus:  messageBus,
+		quitChannel: quitChannel,
 	}
 }
 
@@ -59,16 +63,9 @@ func (c *connectionManager) getTopicLimit() int {
 }
 
 func (c *connectionManager) run() {
-	for {
-		select {
-		case <-c.quitChannel:
-			for _, conn := range c.connections {
-				conn.Disconnect()
-			}
-			return
-			// case <-time.After(1 * time.Second):
-			// TODO: Check for orphan topics?
-		}
+	<-c.quitChannel
+	for _, conn := range c.connections {
+		conn.Disconnect()
 	}
 }
 

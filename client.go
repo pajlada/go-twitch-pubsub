@@ -3,7 +3,6 @@ package twitchpubsub
 import (
 	"errors"
 	"log"
-	"sync"
 	"time"
 )
 
@@ -56,27 +55,17 @@ type Client struct {
 
 // NewClient creates a client struct and fills it in with some default values
 func NewClient(host string) *Client {
-	c := &Client{
-		messageBus:  make(chan sharedMessage, messageBusBufferLength),
-		quitChannel: make(chan struct{}),
+	messageBus := make(chan sharedMessage, messageBusBufferLength)
+	quitChannel := make(chan struct{})
+
+	return &Client{
+		messageBus:  messageBus,
+		quitChannel: quitChannel,
 
 		topics: newTopicManager(),
+
+		connectionManager: newConnectionManager(host, defaultConnectionLimit, defaultTopicLimit, messageBus, quitChannel),
 	}
-
-	c.connectionManager = &connectionManager{
-		host: host,
-
-		connectionLimit:      defaultConnectionLimit,
-		connectionLimitMutex: &sync.RWMutex{},
-
-		topicLimit:      defaultTopicLimit,
-		topicLimitMutex: &sync.RWMutex{},
-
-		messageBus:  c.messageBus,
-		quitChannel: c.quitChannel,
-	}
-
-	return c
 }
 
 func (c *Client) SetConnectionLimit(connectionLimit int) {
