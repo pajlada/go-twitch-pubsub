@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Dev: Add moderation event tests. (#21)
+
 ## v0.1.0
 
 - Major: Changed minimum required Go version from 1.16 to 1.19. (#19)
