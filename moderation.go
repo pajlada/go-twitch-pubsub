@@ -43,6 +43,10 @@ func parseChannelIDFromModerationTopic(topic string) (string, error) {
 	return parts[2], nil
 }
 
+func isModerationActionTopic(topic string) bool {
+	return strings.HasPrefix(topic, moderationActionTopicPrefix)
+}
+
 // ModerationActionTopic returns a properly formatted moderation action topic string with the given user and channel ID arguments
 func ModerationActionTopic(userID, channelID string) string {
 	const f = `chat_moderator_actions.%s.%s`
