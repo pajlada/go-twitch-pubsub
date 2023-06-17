@@ -20,10 +20,10 @@ const (
 )
 
 func getMessageType(topic string) messageType {
-	if strings.HasPrefix(topic, moderationActionTopicPrefix) {
+	if isModerationActionTopic(topic) {
 		return messageTypeModerationAction
 	}
-	if strings.HasPrefix(topic, bitsEventTopicPrefix) {
+	if isBitsEventTopic(topic) {
 		return messageTypeBitsEvent
 	}
 	if strings.HasPrefix(topic, pointsEventTopicPrefix) {

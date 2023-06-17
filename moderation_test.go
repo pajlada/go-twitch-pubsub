@@ -13,7 +13,7 @@ func TestParseModerationEvent(t *testing.T) {
 	type testCase struct {
 		label            string
 		input            string
-		isSubscribeMsg   bool
+		isValidMsg       bool
 		expected         *ModerationAction
 		expectedErr      error
 		expectedOuterErr error
@@ -21,9 +21,9 @@ func TestParseModerationEvent(t *testing.T) {
 
 	testCases := []testCase{
 		{
-			label:          "Timeout without reason",
-			input:          `{"type":"MESSAGE","data":{"topic":"chat_moderator_actions.11148817.11148817","message":"{\"type\":\"moderation_action\",\"data\":{\"args\":[\"69420\",\"1\",\"\"],\"created_at\":\"2023-06-11T09:58:52.152684347Z\",\"created_by\":\"pajlada\",\"created_by_user_id\":\"11148817\",\"moderation_action\":\"timeout\",\"target_user_id\":\"25497681\",\"target_user_login\":\"69420\",\"type\":\"chat_login_moderation\"}}"}}`,
-			isSubscribeMsg: true,
+			label:      "Timeout without reason",
+			input:      `{"type":"MESSAGE","data":{"topic":"chat_moderator_actions.11148817.11148817","message":"{\"type\":\"moderation_action\",\"data\":{\"args\":[\"69420\",\"1\",\"\"],\"created_at\":\"2023-06-11T09:58:52.152684347Z\",\"created_by\":\"pajlada\",\"created_by_user_id\":\"11148817\",\"moderation_action\":\"timeout\",\"target_user_id\":\"25497681\",\"target_user_login\":\"69420\",\"type\":\"chat_login_moderation\"}}"}}`,
+			isValidMsg: true,
 			expected: &ModerationAction{
 				Type:             "chat_login_moderation",
 				ModerationAction: "timeout",
@@ -37,9 +37,9 @@ func TestParseModerationEvent(t *testing.T) {
 			expectedOuterErr: nil,
 		},
 		{
-			label:          "Timeout with reason",
-			input:          `{"type":"MESSAGE","data":{"topic":"chat_moderator_actions.11148817.11148817","message":"{\"type\":\"moderation_action\",\"data\":{\"args\":[\"doge41732\",\"5\",\"This is the reason for the timeout\"],\"created_at\":\"2023-06-17T15:04:31.20928599Z\",\"created_by\":\"pajlada\",\"created_by_user_id\":\"11148817\",\"moderation_action\":\"timeout\",\"target_user_id\":\"115117172\",\"target_user_login\":\"doge41732\",\"type\":\"chat_login_moderation\"}}"}}`,
-			isSubscribeMsg: true,
+			label:      "Timeout with reason",
+			input:      `{"type":"MESSAGE","data":{"topic":"chat_moderator_actions.11148817.11148817","message":"{\"type\":\"moderation_action\",\"data\":{\"args\":[\"doge41732\",\"5\",\"This is the reason for the timeout\"],\"created_at\":\"2023-06-17T15:04:31.20928599Z\",\"created_by\":\"pajlada\",\"created_by_user_id\":\"11148817\",\"moderation_action\":\"timeout\",\"target_user_id\":\"115117172\",\"target_user_login\":\"doge41732\",\"type\":\"chat_login_moderation\"}}"}}`,
+			isValidMsg: true,
 			expected: &ModerationAction{
 				Type:             "chat_login_moderation",
 				ModerationAction: "timeout",
@@ -53,9 +53,9 @@ func TestParseModerationEvent(t *testing.T) {
 			expectedOuterErr: nil,
 		},
 		{
-			label:          "Deleted message",
-			input:          `{"type":"MESSAGE","data":{"topic":"chat_moderator_actions.11148817.11148817","message":"{\"type\":\"moderation_action\",\"data\":{\"type\":\"chat_login_moderation\",\"moderation_action\":\"delete\",\"args\":[\"slurps\",\"4HEad 👍\",\"31197cd8-d5da-4deb-a146-3d8b5115518a\"],\"created_by\":\"pajlada\",\"created_by_user_id\":\"11148817\",\"created_at\":\"2023-06-17T15:07:17.679767013Z\",\"msg_id\":\"\",\"target_user_id\":\"133077169\",\"target_user_login\":\"\",\"from_automod\":false}}"}}`,
-			isSubscribeMsg: true,
+			label:      "Deleted message",
+			input:      `{"type":"MESSAGE","data":{"topic":"chat_moderator_actions.11148817.11148817","message":"{\"type\":\"moderation_action\",\"data\":{\"type\":\"chat_login_moderation\",\"moderation_action\":\"delete\",\"args\":[\"slurps\",\"4HEad 👍\",\"31197cd8-d5da-4deb-a146-3d8b5115518a\"],\"created_by\":\"pajlada\",\"created_by_user_id\":\"11148817\",\"created_at\":\"2023-06-17T15:07:17.679767013Z\",\"msg_id\":\"\",\"target_user_id\":\"133077169\",\"target_user_login\":\"\",\"from_automod\":false}}"}}`,
+			isValidMsg: true,
 			expected: &ModerationAction{
 				Type:             "chat_login_moderation",
 				ModerationAction: "delete",
@@ -76,7 +76,7 @@ func TestParseModerationEvent(t *testing.T) {
 		{
 			label:            "Invalid message JSON",
 			input:            `{"type":"MESSAGE","data":{"topic":"chat_moderator_actions.11148817.11148817","message":"{forsen}"}}`,
-			isSubscribeMsg:   true,
+			isValidMsg:       true,
 			expected:         nil,
 			expectedErr:      errors.New("invalid character 'f' looking for beginning of object key string"),
 			expectedOuterErr: nil,
@@ -87,9 +87,9 @@ func TestParseModerationEvent(t *testing.T) {
 		c.Run(testCase.label, func(c *qt.C) {
 			outerMessage, err := parseOuterMessage([]byte(testCase.input))
 			c.Assert(err, qt.Equals, testCase.expectedOuterErr)
-			c.Assert(isModerationActionTopic(outerMessage.Data.Topic), qt.Equals, testCase.isSubscribeMsg)
+			c.Assert(isModerationActionTopic(outerMessage.Data.Topic), qt.Equals, testCase.isValidMsg)
 
-			if testCase.isSubscribeMsg {
+			if testCase.isValidMsg {
 				// Only test parsing if we expect the input message to be an actual subscribe message
 				innerMessageBytes := []byte(outerMessage.Data.Message)
 				actual, err := parseModerationAction([]byte(innerMessageBytes))

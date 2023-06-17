@@ -129,7 +129,11 @@ func (c *Client) Start() error {
 					log.Println("Error parsing channel id from bits topic:", err)
 					continue
 				}
-				c.onBitsEvent(channelID, d)
+				if c.onBitsEvent != nil {
+					c.onBitsEvent(channelID, d)
+				} else {
+					log.Println("Subscribed to BitsEvent but no callback is attached")
+				}
 			case *PointsEvent:
 				d := msg.Message.(*PointsEvent)
 				channelID, err := parseChannelIDFromPointsTopic(msg.Topic)
