@@ -93,6 +93,31 @@ func TestParseBitsEvent(t *testing.T) {
 			expectedErr:      nil,
 			expectedOuterErr: nil,
 		},
+		{
+			// the user unlocked a badge & a new emote, but the data is lacking in the JSON
+			label:      "badge entitlement",
+			input:      `{"type":"MESSAGE","data":{"topic":"channel-bits-events-v1.11148817","message":"{\"data\":{\"user_name\":\"slurps\",\"channel_name\":\"pajlada\",\"user_id\":\"133077169\",\"channel_id\":\"11148817\",\"time\":\"2023-06-17T16:03:13.091931264Z\",\"chat_message\":\"Cheer149\",\"bits_used\":149,\"total_bits_used\":1000,\"context\":\"cheer\",\"badge_entitlement\":null,\"badge_tier_entitlement\":{\"Badge\":{\"new_version\":0,\"previous_version\":0},\"Emoticons\":null}},\"version\":\"1.0\",\"message_type\":\"bits_event\",\"message_id\":\"cd377d1e-99ea-5260-bdd0-6a318c5775a8\"}"}}`,
+			isValidMsg: true,
+			expected: &BitsEvent{
+				UserName: "slurps",
+				UserID:   "133077169",
+
+				ChannelName: "pajlada",
+				ChannelID:   "11148817",
+
+				Time: time.Date(2023, time.June, 17, 16, 03, 13, 91931264, time.UTC),
+
+				ChatMessage: "Cheer149",
+
+				BitsUsed: 149,
+
+				TotalBitsUsed: 1000,
+
+				Context: "cheer",
+			},
+			expectedErr:      nil,
+			expectedOuterErr: nil,
+		},
 
 		{
 			label:            "Invalid message JSON",
