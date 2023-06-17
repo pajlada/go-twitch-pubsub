@@ -22,6 +22,8 @@ func main() {
 	pubsubClient.Listen(twitchpubsub.ModerationActionTopic(userID, "93031467"), userToken)
 	pubsubClient.Listen(twitchpubsub.SubscribeEventTopic(userID), userToken)
 
+	pubsubClient.Listen(twitchpubsub.BitsEventTopic(userID), userToken)
+
 	// Specify what callback is called when that topic receives a message
 	pubsubClient.OnModerationAction(func(channelID string, event *twitchpubsub.ModerationAction) {
 		fmt.Println(channelID, event.CreatedBy, event.ModerationAction, "on", event.TargetUserID)
@@ -29,6 +31,10 @@ func main() {
 
 	pubsubClient.OnSubscribeEvent(func(channelID string, event *twitchpubsub.SubscribeEvent) {
 		fmt.Printf("Subscribe event in %s: %#v\n", channelID, event)
+	})
+
+	pubsubClient.OnBitsEvent(func(channelID string, event *twitchpubsub.BitsEvent) {
+		fmt.Printf("Bits event in %s: %#v\n", channelID, event)
 	})
 
 	go pubsubClient.Start()
