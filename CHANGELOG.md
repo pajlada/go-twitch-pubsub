@@ -3,6 +3,7 @@
 ## Unreleased
 
 - Dev: Add moderation event tests. (#21)
+- Dev: Add bits event tests. (#22)
 
 ## v0.1.0
 
