@@ -7,12 +7,12 @@ import (
 )
 
 const (
-	reconnectInterval      = 5 * time.Second
-	pingInterval           = 4 * time.Minute
-	pongDeadlineTime       = 9 * time.Second
-	writerBufferLength     = 100
-	readerBufferLength     = 100
-	messageBusBufferLength = 50
+	defaultReconnectInterval = 5 * time.Second
+	defaultPingInterval      = 4 * time.Minute
+	defaultPongDeadlineTime  = 9 * time.Second
+	writerBufferLength       = 100
+	readerBufferLength       = 100
+	messageBusBufferLength   = 50
 
 	// maximum number of connections to open
 	defaultConnectionLimit = 10
