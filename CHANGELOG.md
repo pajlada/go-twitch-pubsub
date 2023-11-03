@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Fix: Fix reconnect race condition on ping failure. (#33)
 - Dev: Add moderation event tests. (#21)
 - Dev: Add bits event tests. (#22, #23)
 
