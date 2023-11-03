@@ -7,6 +7,9 @@ on:
       - master
   pull_request:
 
+env:
+  TWITCH_PUBSUB_SERVER_IMAGE: ghcr.io/chatterino/twitch-pubsub-server-test:v1.0.6
+
 jobs:
   build:
     runs-on: ${{ matrix.os }}
@@ -26,6 +29,12 @@ jobs:
         with:
           go-version: ${{ matrix.go }}
 
+      - name: Install system dependencies
+        if: startsWith(matrix.os, 'macos-')
+        run: |
+          brew install docker
+          colima start
+
       - uses: actions/checkout@v4
 
       - name: Get Go dependencies
@@ -37,7 +46,10 @@ jobs:
         working-directory: cmd/example
 
       - name: Test
-        run: go test -v ./...
+        run: |
+          docker pull ${{ env.TWITCH_PUBSUB_SERVER_IMAGE }}
+          docker run --network=host --detach ${{ env.TWITCH_PUBSUB_SERVER_IMAGE }}
+          go test -v ./...
 
       - name: Generate code coverage
         if: matrix.os == 'ubuntu-22.04' && matrix.go == '1.19'

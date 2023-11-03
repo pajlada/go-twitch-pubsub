@@ -11,6 +11,12 @@ import (
 	"github.com/gorilla/websocket"
 )
 
+var connectionDialer *websocket.Dialer
+
+func setConnectionDialer(d *websocket.Dialer) {
+	connectionDialer = d
+}
+
 type connection struct {
 	host string
 
@@ -35,6 +41,14 @@ type connection struct {
 	topics []*websocketTopic
 
 	nonceCounter uint64
+
+	// numConnects gets incremented at the start of each connect call
+	// this is only used for tests
+	numConnects atomic.Uint64
+
+	reconnectInterval time.Duration
+	pingInterval      time.Duration
+	pongDeadlineTime  time.Duration
 }
 
 func newConnection(host string, messageBus messageBusType) *connection {
@@ -48,6 +62,10 @@ func newConnection(host string, messageBus messageBusType) *connection {
 		readerStop: make(chan bool),
 
 		messageBus: messageBus,
+
+		reconnectInterval: defaultReconnectInterval,
+		pingInterval:      defaultPingInterval,
+		pongDeadlineTime:  defaultPongDeadlineTime,
 	}
 }
 
@@ -65,6 +83,9 @@ func (c *connection) startReader() {
 		for {
 			messageType, payloadBytes, err := c.wsConn.ReadMessage()
 			if err != nil {
+				if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
+					fmt.Println("[go-twitch-pubsub]: Unexpected close error:", err)
+				}
 				c.readerStop <- true
 				return
 			}
@@ -75,11 +96,30 @@ func (c *connection) startReader() {
 		}
 	}()
 
+	pingTime := time.Now()
+	pingTicker := time.NewTicker(c.pingInterval)
+	pongCheckTimer := time.NewTimer(c.pongDeadlineTime)
+	pongCheckTimer.Stop()
+
 	for {
 		select {
 		case payloadBytes := <-c.reader:
 			if err := c.parse(payloadBytes); err != nil {
 				fmt.Println("Error parsing received websocket message:", err)
+			}
+
+		case <-pingTicker.C:
+			if err := c.ping(); err != nil {
+				fmt.Println("[go-twitch-pubsub] Error sending ping:", err)
+				return
+			}
+			pingTime = time.Now()
+			pongCheckTimer.Reset(c.pongDeadlineTime)
+
+		case <-pongCheckTimer.C:
+			if !c.lastPongWithinLimits(pingTime) {
+				fmt.Println("[go-twitch-pubsub] Lost connection, will try to reconnect")
+				return
 			}
 
 		case <-c.readerStop:
@@ -98,7 +138,8 @@ func (c *connection) lastPongWithinLimits(pingTime time.Time) bool {
 	c.pongMutex.Lock()
 	defer c.pongMutex.Unlock()
 
-	return c.lastPong.Sub(pingTime) < pongDeadlineTime
+	lastPongDiff := c.lastPong.Sub(pingTime)
+	return lastPongDiff >= 0*time.Second && lastPongDiff < c.pongDeadlineTime
 }
 
 func (c *connection) writeMessage(msg interface{}) error {
@@ -117,28 +158,12 @@ func (c *connection) ping() error {
 		Type: "PING",
 	}
 
-	pingTime := time.Now()
 	err := c.writeMessage(msg)
 	if err != nil {
 		return err
 	}
 
-	time.AfterFunc(pongDeadlineTime, func() {
-		if !c.lastPongWithinLimits(pingTime) {
-			fmt.Println("[go-twitch-pubsub] Lost connection, will try to reconnect")
-			c.doReconnect = true
-			c.onDisconnect()
-		}
-	})
-
 	return nil
-}
-
-func (c *connection) startPing() {
-	time.AfterFunc(pingInterval, func() {
-		_ = c.ping()
-		c.startPing()
-	})
 }
 
 func (c *connection) setConnected(newConnectedState bool) {
@@ -179,8 +204,13 @@ func (c *connection) stopReader() {
 }
 
 func (c *connection) connect() error {
+	c.numConnects.Add(1)
 	var err error
-	c.wsConn, _, err = websocket.DefaultDialer.Dial(c.host, nil)
+	if connectionDialer == nil {
+		c.wsConn, _, err = websocket.DefaultDialer.Dial(c.host, nil)
+	} else {
+		c.wsConn, _, err = connectionDialer.Dial(c.host, nil)
+	}
 	if err != nil {
 		c.doReconnect = true
 		c.onDisconnect()
@@ -192,13 +222,7 @@ func (c *connection) connect() error {
 	go c.startReader()
 	go c.startWriter()
 
-	c.onConnected()
-
 	return nil
-}
-
-func (c *connection) onConnected() {
-	go c.startPing()
 }
 
 func (c *connection) onDisconnect() {
@@ -207,7 +231,7 @@ func (c *connection) onDisconnect() {
 		return
 	}
 
-	time.AfterFunc(reconnectInterval, func() {
+	time.AfterFunc(c.reconnectInterval, func() {
 		c.tryReconnect()
 	})
 }
