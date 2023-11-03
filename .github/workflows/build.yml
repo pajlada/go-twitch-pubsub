@@ -29,6 +29,11 @@ jobs:
         with:
           go-version: ${{ matrix.go }}
 
+      - name: Install system dependencies
+        if: startsWith(matrix.os, 'macos-')
+        run: |
+          brew install docker
+
       - uses: actions/checkout@v4
 
       - name: Get Go dependencies
