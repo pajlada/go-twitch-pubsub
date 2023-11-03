@@ -33,6 +33,7 @@ jobs:
         if: startsWith(matrix.os, 'macos-')
         run: |
           brew install docker
+          colima start
 
       - uses: actions/checkout@v4
 
