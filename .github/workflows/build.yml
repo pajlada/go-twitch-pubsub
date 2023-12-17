@@ -7,6 +7,10 @@ on:
       - master
   pull_request:
 
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
 env:
   TWITCH_PUBSUB_SERVER_TAG: v1.0.7
   TWITCH_PUBSUB_SERVER_IMAGE: ghcr.io/chatterino/twitch-pubsub-server-test:$TWITCH_PUBSUB_SERVER_TAG
