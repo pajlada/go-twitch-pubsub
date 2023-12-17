@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Dev: Don't use docker for testing on macOS. (#38)
+
 ## v0.1.1
 
 - Fix: Fix reconnect race condition on ping failure. (#33)
