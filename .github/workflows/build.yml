@@ -22,8 +22,8 @@ jobs:
     strategy:
       matrix:
         go:
-          - "1.19"
           - "1.20"
+          - "1.21"
         os:
           - "ubuntu-22.04"
           - "ubuntu-20.04"
@@ -76,11 +76,11 @@ jobs:
           go test -v ./...
 
       - name: Generate code coverage
-        if: matrix.os == 'ubuntu-22.04' && matrix.go == '1.19'
+        if: matrix.os == 'ubuntu-22.04' && matrix.go == '1.21'
         run: go test -race -v -count=1 -coverprofile=coverage.out ./...
 
       - name: Upload Test Coverage
-        if: matrix.os == 'ubuntu-22.04' && matrix.go == '1.19'
+        if: matrix.os == 'ubuntu-22.04' && matrix.go == '1.21'
         uses: codecov/codecov-action@v3
         with:
           fail_ci_if_error: true
