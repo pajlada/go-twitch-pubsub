@@ -8,7 +8,8 @@ on:
   pull_request:
 
 env:
-  TWITCH_PUBSUB_SERVER_IMAGE: ghcr.io/chatterino/twitch-pubsub-server-test:v1.0.6
+  TWITCH_PUBSUB_SERVER_TAG: v1.0.7
+  TWITCH_PUBSUB_SERVER_IMAGE: ghcr.io/chatterino/twitch-pubsub-server-test:$TWITCH_PUBSUB_SERVER_TAG
 
 jobs:
   build:
@@ -45,10 +46,34 @@ jobs:
         run: go build
         working-directory: cmd/example
 
-      - name: Test
+      - name: Download mock PubSub server
+        if: startsWith(matrix.os, 'ubuntu-')
         run: |
           docker pull ${{ env.TWITCH_PUBSUB_SERVER_IMAGE }}
+
+      - name: Download mock PubSub server
+        if: startsWith(matrix.os, 'macos-')
+        run: |
+          mkdir pubsub-server-test
+          curl -L -o pubsub-server.tar.gz "https://github.com/Chatterino/twitch-pubsub-server-test/releases/download/${{ env.TWITCH_PUBSUB_SERVER_TAG }}/server-${{ env.TWITCH_PUBSUB_SERVER_TAG }}-darwin-amd64.tar.gz"
+          tar -xzf pubsub-server.tar.gz -C pubsub-server-test
+          rm pubsub-server.tar.gz
+          cd pubsub-server-test
+          curl -L -o server.crt "https://github.com/Chatterino/twitch-pubsub-server-test/raw/${{ env.TWITCH_PUBSUB_SERVER_TAG }}/cmd/server/server.crt"
+          curl -L -o server.key "https://github.com/Chatterino/twitch-pubsub-server-test/raw/${{ env.TWITCH_PUBSUB_SERVER_TAG }}/cmd/server/server.key"
+
+      - name: Test
+        if: startsWith(matrix.os, 'ubuntu-')
+        run: |
           docker run --network=host --detach ${{ env.TWITCH_PUBSUB_SERVER_IMAGE }}
+          go test -v ./...
+
+      - name: Test
+        if: startsWith(matrix.os, 'macos-')
+        run: |
+          cd pubsub-server-test
+          ./server 127.0.0.1:9050 &
+          cd ..
           go test -v ./...
 
       - name: Generate code coverage
