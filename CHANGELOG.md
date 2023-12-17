@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Major: Changed minimum required Go version from 1.19 to 1.20. (#39)
 - Dev: Don't use docker for testing on macOS. (#38)
 
 ## v0.1.1
