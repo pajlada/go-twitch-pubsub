@@ -5,7 +5,7 @@ go 1.20
 require (
 	github.com/frankban/quicktest v1.14.6
 	github.com/gorilla/websocket v1.5.1
-	honnef.co/go/tools v0.4.6
+	honnef.co/go/tools v0.4.7
 )
 
 require (
