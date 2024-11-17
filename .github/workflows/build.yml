@@ -81,7 +81,7 @@ jobs:
 
       - name: Upload Test Coverage
         if: matrix.os == 'ubuntu-22.04' && matrix.go == '1.21'
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@v5
         with:
           fail_ci_if_error: true
 
